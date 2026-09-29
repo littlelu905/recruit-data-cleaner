@@ -93,11 +93,48 @@ def validate_and_clean(filepath):
             print(f"  第 {idx:>3} 行: {'; '.join(reasons)}")
     return clean_rows, fieldnames, problem_rows
 
+def stats_and_export(filepath):
+    clean_rows, fieldnames, _ = validate_and_clean(filepath)
+    v1_counter = Counter()
+    both_filled = 0
+    one_filled = 0
+    for row in clean_rows:
+        v1 = row.get('志愿1', '').strip()
+        v2 = row.get('志愿2', '').strip()
+        v1_counter[v1] += 1
+        if v1 and v2:
+            both_filled += 1
+        elif v1 or v2:
+            one_filled += 1
+    print()
+    print("=" * 50)
+    print("按第一志愿分组统计:")
+    print(f"  {'第一志愿':<12} {'人数':>6}  {'占比':>8}")
+    print(f"  {'-'*12} {'-'*6}  {'-'*8}")
+    total = sum(v1_counter.values())
+    for v1, cnt in v1_counter.most_common():
+        label = v1 if v1 else '(未填写)'
+        pct = (cnt / total * 100) if total else 0
+        print(f"  {label:<12} {cnt:>6}  {pct:>7.1f}%")
+    print()
+    print("志愿填写情况统计:")
+    print(f"  两个志愿都填了 : {both_filled} 人")
+    print(f"  只填了一个志愿 : {one_filled} 人")
+    base = os.path.splitext(filepath)[0]
+    clean_path = f"{base}_clean.csv"
+    with open(clean_path, 'w', encoding='utf-8-sig', newline='') as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(clean_rows)
+    print()
+    print(f"清洗后的干净数据已导出至: {clean_path}")
+    return v1_counter, both_filled, one_filled
+
 
 def main():
     parser = argparse.ArgumentParser(description='招新报名数据清洗与统计工具')
     parser.add_argument('csvfile', help='CSV 文件路径')
-    parser.add_argument('action', choices=['overview', 'clean'])
+    parser.add_argument('action', choices=['overview', 'clean', 'stats', 'all'])
     args = parser.parse_args()
     if not os.path.exists(args.csvfile):
         print(f"错误: 文件不存在 -> {args.csvfile}", file=sys.stderr)
@@ -106,6 +143,23 @@ def main():
         overview(args.csvfile)
     elif args.action == 'clean':
         validate_and_clean(args.csvfile)
+    elif args.action == 'stats':
+        stats_and_export(args.csvfile)
+    elif args.action == 'all':
+        print("=" * 50)
+        print("【需求 1】读入与概览")
+        print("=" * 50)
+        overview(args.csvfile)
+        print()
+        print("=" * 50)
+        print("【需求 2】校验与清洗")
+        print("=" * 50)
+        validate_and_clean(args.csvfile)
+        print()
+        print("=" * 50)
+        print("【需求 3】统计与导出")
+        print("=" * 50)
+        stats_and_export(args.csvfile)
 
 
 if __name__ == '__main__':
