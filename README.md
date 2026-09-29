@@ -15,3 +15,11 @@ python clean_recruit.py sample_data.csv overview
 ```
 
 输出：总记录数、各列空值统计、完全重复行。
+
+## 需求 2：校验与清洗
+
+```bash
+python clean_recruit.py sample_data.csv clean
+```
+
+校验学号（纯数字）、邮箱（学号@smbu.edu.cn）、重复报名。导出问题清单，不修改原文件。
